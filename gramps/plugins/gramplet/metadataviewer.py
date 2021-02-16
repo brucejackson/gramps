@@ -31,6 +31,7 @@ Image Metadata Gramplet
 from gramps.plugins.lib.libmetadata import MetadataView
 from gramps.gen.plug import Gramplet
 from gramps.gen.utils.file import media_path_full
+from gramps.gui.widgets import SelectionWidget, Region
 
 class MetadataViewer(Gramplet):
     """
