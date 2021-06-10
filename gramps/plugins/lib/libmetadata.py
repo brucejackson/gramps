@@ -50,7 +50,7 @@ from gi.repository import GObject
 #
 #-------------------------------------------------------------------------
 
-from gramps.gui.listmodel import ListModel, NOSORT, IMAGE
+from gramps.gui.listmodel import ListModel, NOSORT, IMAGE as COL_IMAGE
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 _ = glocale.translation.gettext
 from gramps.gen.utils.place import conv_lat_lon
@@ -60,7 +60,7 @@ from gramps.gen.datehandler import displayer
 from datetime import datetime
 from gramps.gui.widgets import SelectionWidget, Region
 
-THUMBNAIL_IMAGE_SIZE = (50, 50)
+THUMBNAIL_IMAGE_SIZE = (40, 40)
 
 def format_datetime(datestring):
     """
@@ -108,8 +108,8 @@ def format_gps(raw_dms, nsew):
 
     return result if result is not None else _('Invalid format')
 
-def get_NamedRegions(self, key, metadata, full_path, mypixbuf):
-    self.pixbuf = GdkPixbuf.Pixbuf.new_from_file(full_path)
+def get_NamedRegions(self, key, metadata, image_path, mypixbuf):
+    self.pixbuf = GdkPixbuf.Pixbuf.new_from_file(image_path)
     self.selection_widget.original_image_size = (self.pixbuf.get_width(),
                                         self.pixbuf.get_height())
 
@@ -127,8 +127,6 @@ def get_NamedRegions(self, key, metadata, full_path, mypixbuf):
         region_name_display = region_name % i
         if name is None:
             break
-
-
         try:
             x = float(metadata.get(region_x % i)) * 100
             y = float(metadata.get(region_y % i)) * 100
@@ -140,8 +138,22 @@ def get_NamedRegions(self, key, metadata, full_path, mypixbuf):
 
         rtype = metadata.get(region_type % i)
         unit = metadata.get(region_unit % i)
-        rect = (x - (w / 2), y - (h / 2), x + (w / 2), y + (h / 2))
 
+        # ensure region does not exceed bounds of image
+        rect_p1 = x - (w / 2)
+        if rect_p1 < 0:
+            rect_p1 = 0
+        rect_p2 = y - (h / 2)
+        if rect_p2 < 0:
+            rect_p2 = 0
+        rect_p3 = x + (w / 2)
+        if rect_p3 > 100:
+            rect_p3 = 100
+        rect_p4 =  y + (h / 2)
+        if rect_p4 > 100:
+            rect_p4 = 100
+
+        rect = (rect_p1, rect_p2, rect_p3, rect_p4)
         coords = self.selection_widget.proportional_to_real_rect(rect)
 
         xmp_region = Region(*coords)
@@ -191,18 +203,42 @@ ACDSEE = _('ACDSee Schema')
 IPTC = _('IPTC')
 EXIF = _('EXIF')
 PEOPLE = _('People')
+RIGHTS = _('Rights')
+TAGGING = _('Tagging')
+
 
 TAGS = [(DESCRIPTION, 'Exif.Image.ImageDescription', None, None, None),
-        (DESCRIPTION, 'Exif.Image.Artist', None, None, None),
-        (DESCRIPTION, 'Exif.Image.Copyright', None, None, None),
+        (DESCRIPTION, 'Exif.Image.XPSubject', None, None, None),
+        (DESCRIPTION, 'Exif.Image.XPComment', None, None, None),
+        (DESCRIPTION, 'Exif.Image.Rating', None, None, None),
+        (DESCRIPTION, 'Xmp.dc.title', None, None, None),
+        (DESCRIPTION, 'Xmp.dc.description', None, None, None),
+        (DESCRIPTION, 'Xmp.dc.subject', None, None, None),
+        (DESCRIPTION, 'Xmp.acdsee.caption', None, None, None),
+        (DESCRIPTION, 'Xmp.acdsee.notes', None, None, None),
+
+        (DESCRIPTION, 'Iptc.Application2.Caption', None, None, None),
+        (DESCRIPTION, 'Exif.Photo.UserComment', None, None, None),
         (DATE, 'Exif.Photo.DateTimeOriginal', None, format_datetime, None),
         (DATE, 'Exif.Photo.DateTimeDigitized', None, format_datetime, None),
         (DATE, 'Exif.Image.DateTime', None, format_datetime, None),
         (DATE, 'Exif.Image.TimeZoneOffset', None, None, None),
-        (DESCRIPTION, 'Exif.Image.XPSubject', None, None, None),
-        (DESCRIPTION, 'Exif.Image.XPComment', None, None, None),
-        (DESCRIPTION, 'Exif.Image.XPKeywords', None, None, None),
-        (DESCRIPTION, 'Exif.Image.Rating', None, None, None),
+        (PEOPLE, 'Xmp.mwg-rs.Regions/mwg-rs:RegionList[1]/mwg-rs:Name', None, None, get_NamedRegions),
+        (PEOPLE, 'Xmp.iptcExt.PersonInImage', None, None, None),
+        (GPS, 'Exif.GPSInfo.GPSLatitude',  'Exif.GPSInfo.GPSLatitudeRef', format_gps, None),
+        (GPS, 'Exif.GPSInfo.GPSLongitude', 'Exif.GPSInfo.GPSLongitudeRef', format_gps, None),
+        (GPS, 'Exif.GPSInfo.GPSAltitude', 'Exif.GPSInfo.GPSAltitudeRef', None, None),
+        (GPS, 'Exif.GPSInfo.GPSTimeStamp', None, None, None),
+        (GPS, 'Exif.GPSInfo.GPSSatellites', None, None, None),
+        (TAGGING, 'Exif.Image.XPKeywords', None, None, None),
+        (TAGGING, 'Iptc.Application2.Keywords', None, None, None),
+        (TAGGING, 'Xmp.mwg-kw.Hierarchy', None, None, None),
+        (TAGGING, 'Xmp.mwg-kw.Keywords', None, None, None),
+        (TAGGING, 'Xmp.digiKam.TagsList', None, None, None),
+        (TAGGING, 'Xmp.MicrosoftPhoto.LastKeywordXMP', None, None, None),
+        (TAGGING, 'Xmp.MicrosoftPhoto.LastKeywordIPTC', None, None, None),
+        (TAGGING, 'Xmp.lr.hierarchicalSubject', None, None, None),
+        (TAGGING, 'Xmp.acdsee.categories', None, None, None),
         (IMAGEX, 'Exif.Image.DocumentName', None, None, None),
         (IMAGEX, 'Exif.Photo.PixelXDimension', None, None, None),
         (IMAGEX, 'Exif.Photo.PixelYDimension', None, None, None),
@@ -215,6 +251,8 @@ TAGS = [(DESCRIPTION, 'Exif.Image.ImageDescription', None, None, None),
         (IMAGEX, 'Exif.Image.Compression', None, None, None),
         (IMAGEX, 'Exif.Photo.CompressedBitsPerPixel', None, None, None),
         (IMAGEX, 'Exif.Image.PhotometricInterpretation', None, None, None),
+        (RIGHTS, 'Exif.Image.Copyright', None, None, None),
+        (RIGHTS, 'Exif.Image.Artist', None, None, None),
         (CAMERA, 'Exif.Image.Make', None, None, None),
         (CAMERA, 'Exif.Image.Model', None, None, None),
         (CAMERA, 'Exif.Photo.FNumber', None, None, None),
@@ -236,12 +274,6 @@ TAGS = [(DESCRIPTION, 'Exif.Image.ImageDescription', None, None, None),
         (CAMERA, 'Exif.Photo.Sharpness', None, None, None),
         (CAMERA, 'Exif.Photo.WhiteBalance', None, None, None),
         (CAMERA, 'Exif.Photo.DigitalZoomRatio', None, None, None),
-        (PEOPLE, 'Xmp.mwg-rs.Regions/mwg-rs:RegionList[1]/mwg-rs:Name', None, None, get_NamedRegions),
-        (GPS, 'Exif.GPSInfo.GPSLatitude',  'Exif.GPSInfo.GPSLatitudeRef', format_gps, None),
-        (GPS, 'Exif.GPSInfo.GPSLongitude', 'Exif.GPSInfo.GPSLongitudeRef', format_gps, None),
-        (GPS, 'Exif.GPSInfo.GPSAltitude', 'Exif.GPSInfo.GPSAltitudeRef', None, None),
-        (GPS, 'Exif.GPSInfo.GPSTimeStamp', None, None, None),
-        (GPS, 'Exif.GPSInfo.GPSSatellites', None, None, None),
         (ADVANCED, 'Exif.Image.Software', None, None, None),
         (ADVANCED, 'Exif.Photo.ImageUniqueID', None, None, None),
         (ADVANCED, 'Exif.Image.CameraSerialNumber', None, None, None),
@@ -249,22 +281,7 @@ TAGS = [(DESCRIPTION, 'Exif.Image.ImageDescription', None, None, None),
         (ADVANCED, 'Exif.Photo.FlashpixVersion', None, None, None),
         (ADVANCED, 'Exif.Image.ExifTag', None, None, None),
         (ADVANCED, 'Exif.Image.GPSTag', None, None, None),
-        (ADVANCED, 'Exif.Image.BatteryLevel', None, None, None),
-        (XMP, 'Xmp.dc.title', None, None, None),
-        (XMP, 'Xmp.dc.description', None, None, None),
-        (XMP, 'Xmp.dc.subject', None, None, None),
-        (XMP, 'Xmp.mwg-kw.Hierarchy', None, None, None),
-        (XMP, 'Xmp.mwg-kw.Keywords', None, None, None),
-        (DIGIKAM, 'Xmp.digiKam.TagsList', None, None, None),
-        (MSPHOTO, 'Xmp.MicrosoftPhoto.LastKeywordXMP', None, None, None),
-        (MSPHOTO, 'Xmp.MicrosoftPhoto.LastKeywordIPTC', None, None, None),
-        (ADOBELR, 'Xmp.lr.hierarchicalSubject', None, None, None),
-        (ACDSEE, 'Xmp.acdsee.caption', None, None, None),
-        (ACDSEE, 'Xmp.acdsee.notes', None, None, None),
-        (ACDSEE, 'Xmp.acdsee.categories', None, None, None),
-        (IPTC, 'Iptc.Application2.Caption', None, None, None),
-        (EXIF, 'Exif.Photo.UserComment', None, None, None),
-        (EXIF, 'Xmp.iptcExt.PersonInImage', None, None, None),]
+        (ADVANCED, 'Exif.Image.BatteryLevel', None, None, None)]
 
 class MetadataView(Gtk.TreeView):
 
@@ -273,27 +290,27 @@ class MetadataView(Gtk.TreeView):
         self.sections = {}
         titles = [(_('Section'), 0, 100),
                   (_('Key'), 1, 235),
-                  (_('Thumbnail'), NOSORT, 50, IMAGE),
+                  (_('Thumbnail'), NOSORT, 50, COL_IMAGE),
                   (_('Value'), 3, 325)]
         self.model = ListModel(self, titles, list_mode="list")
 
-    def display_exif_tags(self, full_path):
+    def display_exif_tags(self, image_path):
         """
         Display the exif tags.
         """
         self.sections = {}
         self.model.clear()
         self.selection_widget = SelectionWidget()
-        if not os.path.exists(full_path):
+        if not os.path.exists(image_path):
             return False
 
         retval = False
-        with open(full_path, 'rb') as fd:
+        with open(image_path, 'rb') as fd:
             try:
                 buf = fd.read()
                 metadata = GExiv2.Metadata()
                 metadata.open_buf(buf)
-                mypixbuf = GdkPixbuf.Pixbuf.new_from_file(full_path)
+                mypixbuf = GdkPixbuf.Pixbuf.new_from_file(image_path)
                 get_human = metadata.get_tag_interpreted_string
 
                 for section, key, key2, func, func2 in TAGS:
@@ -304,7 +321,7 @@ class MetadataView(Gtk.TreeView):
                         continue
 
                     if func2 is not None:
-                        func2(self, metadata[key], metadata, full_path, mypixbuf)
+                        func2(self, metadata[key], metadata, image_path, mypixbuf)
                         continue
 
                     if func is not None:
@@ -345,13 +362,13 @@ class MetadataView(Gtk.TreeView):
             node = self.sections[section]
         return node
 
-    def get_has_data(self, full_path):
+    def get_has_data(self, image_path):
         """
         Return True if the gramplet has data, else return False.
         """
-        if not os.path.exists(full_path):
+        if not os.path.exists(image_path):
             return False
-        with open(full_path, 'rb') as fd:
+        with open(image_path, 'rb') as fd:
             retval = False
             try:
                 buf = fd.read()
