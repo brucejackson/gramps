@@ -293,9 +293,7 @@ class SelectionWidget(Gtk.ScrolledWindow):
         self.grabber_to_draw = None
 
         try:
-
             self.pixbuf = GdkPixbuf.Pixbuf.new_from_file(image_path)
-
             self.original_image_size = (self.pixbuf.get_width(),
                                         self.pixbuf.get_height())
 
